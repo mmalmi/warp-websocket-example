@@ -8,7 +8,7 @@ use std::env;
 
 use futures_util::{SinkExt, StreamExt, TryFutureExt};
 use tokio::sync::{mpsc, RwLock};
-use tokio_stream::wrappers::UnboundedReceiverStream;
+use tokio_stream::wrappers::ReceiverStream;
 use warp::ws::{Message, WebSocket};
 use warp::Filter;
 
@@ -19,7 +19,7 @@ static NEXT_USER_ID: AtomicUsize = AtomicUsize::new(1);
 ///
 /// - Key is their id
 /// - Value is a sender of `warp::ws::Message`
-type Users = Arc<RwLock<HashMap<usize, mpsc::UnboundedSender<Message>>>>;
+type Users = Arc<RwLock<HashMap<usize, mpsc::Sender<Message>>>>;
 
 #[tokio::main]
 async fn main() {
@@ -66,8 +66,8 @@ async fn user_connected(ws: WebSocket, users: Users) {
 
     // Use an unbounded channel to handle buffering and flushing of messages
     // to the websocket...
-    let (tx, rx) = mpsc::unbounded_channel();
-    let mut rx = UnboundedReceiverStream::new(rx);
+    let (tx, rx) = mpsc::channel(1);
+    let mut rx =  ReceiverStream::new(rx);
 
     tokio::task::spawn(async move {
         while let Some(message) = rx.next().await {
@@ -115,7 +115,7 @@ async fn user_message(my_id: usize, msg: Message, users: &Users) {
     // New message from this user, send it to everyone else (except same uid)...
     for (&uid, tx) in users.read().await.iter() {
         if my_id != uid {
-            if let Err(_disconnected) = tx.send(Message::text(msg.clone())) {
+            if let Err(_disconnected) = tx.try_send(Message::text(msg.clone())) {
                 // The tx is disconnected, our `user_disconnected` code
                 // should be happening in another task, nothing more to
                 // do here.
