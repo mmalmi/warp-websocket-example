@@ -1,0 +1,12 @@
+{
+  "name": "warp-websocket-example",
+  "stack": "heroku-20",
+  "website": "https://github.com/mmalmi/warp-websocket-example",
+  "repository": "https://github.com/mmalmi/warp-websocket-example",
+  "description": "Warp websocket example",
+  "buildpacks": [
+    {
+      "url": "emk/rust"
+    }
+  ]
+}
