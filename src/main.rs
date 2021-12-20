@@ -38,7 +38,11 @@ async fn main() {
         .and(users)
         .map(|ws: warp::ws::Ws, users| {
             // This will call our function if the handshake succeeds.
-            ws.on_upgrade(move |socket| user_connected(socket, users))
+            ws
+                .max_send_queue(1)
+                .max_message_size(5 * 1000 * 1000)
+                .max_frame_size(5 * 1000 * 1000)
+                .on_upgrade(move |socket| user_connected(socket, users))
         });
 
     // GET / -> index html
